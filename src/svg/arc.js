@@ -12,6 +12,7 @@ d3.svg.arc = function() {
   function arc() {
     var r0 = innerRadius.apply(this, arguments),
         r1 = outerRadius.apply(this, arguments),
+        rc = cornerRadius.apply(this, arguments),
         a0 = startAngle.apply(this, arguments) + d3_svg_arcOffset,
         a1 = endAngle.apply(this, arguments) + d3_svg_arcOffset,
         da = (a1 < a0 && (da = a0, a0 = a1, a1 = da), a1 - a0),
@@ -20,7 +21,6 @@ d3.svg.arc = function() {
         s0 = Math.sin(a0),
         c1 = Math.cos(a1),
         s1 = Math.sin(a1),
-        rc = cornerRadius.apply(this, arguments),
         k = 0.5522847493, // = 4 * (Math.sqrt(2) - 1) / 3
         ac, cc, sc,
         d0, d1, r0c, r1c,
@@ -31,7 +31,7 @@ d3.svg.arc = function() {
 
     function _prepOuterCorners() {
       d1 = r1 / (r1 - rc);
-      if (isNaN(r1c = Math.sqrt((r1 - rc) * (r1 - rc) - rc * rc)))
+      if (isNaN(r1c = Math.sqrt((r1 - rc) * (r1 - rc) - rc * rc)) || r1c < 0)
         throw new Error(d3_svg_cr_error);
       x10 = d1 * (r1c * c0 - rc * s0);
       y10 = d1 * (r1c * s0 + rc * c0);
@@ -43,12 +43,12 @@ d3.svg.arc = function() {
     function _outerCornerArcs() {
       return "M" + r1c * c0 + "," + r1c * s0
         + "A" + rc + "," + rc + " 0 0,1 " + x10 + "," + y10
-        + "A" + r1 + "," + r1 + " 0 " + (df1 > 0 ? 0 : 1) + ",1 " + x11 + "," + y11
+        + (r1c > 0 ? ("A" + r1 + "," + r1 + " 0 " + (df1 > 0 ? 0 : 1) + ",1 " + x11 + "," + y11) : "")
         + "A" + rc + "," + rc + " 0 0,1 " + r1c * c1 + "," + r1c * s1;
     }
 
     function _prepInnerCorners() {
-      if (isNaN(r0c = Math.sqrt((r0 + rc) * (r0 + rc) - rc * rc)))
+      if (isNaN(r0c = Math.sqrt((r0 + rc) * (r0 + rc) - rc * rc)) || r0c - r1c > ε)
         throw new Error(d3_svg_cr_error);
       d0 = r0 / (r0 + rc);
       x00 = d0 * (r0c * c0 - rc * s0);
@@ -66,7 +66,9 @@ d3.svg.arc = function() {
     }
 
     function _prepMidSines() {
-      ac = (a0 + a1) / 2, cc = Math.cos(ac), sc = Math.sin(ac);
+      ac = (a0 + a1) / 2;
+      cc = Math.cos(ac);
+      sc = Math.sin(ac);
     }
 
     function _innerCornerBeziers(prepSines) {
